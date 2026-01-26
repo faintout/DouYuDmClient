@@ -31,6 +31,18 @@ async function loadConfig() {
   document.getElementById('showTime').checked = config.displayOptions.showTime;
   document.getElementById('showNickname').checked = config.displayOptions.showNickname;
   document.getElementById('showLevel').checked = config.displayOptions.showLevel;
+  
+  // 重连配置
+  if (config.reconnect) {
+    document.getElementById('reconnectEnabled').checked = config.reconnect.enabled !== false;
+    document.getElementById('reconnectMaxRetries').value = config.reconnect.maxRetries || -1;
+    document.getElementById('reconnectInterval').value = config.reconnect.retryInterval || 3000;
+  } else {
+    // 默认值
+    document.getElementById('reconnectEnabled').checked = true;
+    document.getElementById('reconnectMaxRetries').value = -1;
+    document.getElementById('reconnectInterval').value = 3000;
+  }
 }
 
 // 背景透明度滑块
@@ -100,6 +112,11 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
       showTime: document.getElementById('showTime').checked,
       showNickname: document.getElementById('showNickname').checked,
       showLevel: document.getElementById('showLevel').checked
+    },
+    reconnect: {
+      enabled: document.getElementById('reconnectEnabled').checked,
+      maxRetries: parseInt(document.getElementById('reconnectMaxRetries').value),
+      retryInterval: parseInt(document.getElementById('reconnectInterval').value)
     }
   };
   
@@ -123,6 +140,12 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
   
   if (!/^#[0-9A-Fa-f]{6}$/.test(newConfig.textColor)) {
     alert('请输入有效的文字颜色（格式：#ffffff）！');
+    return;
+  }
+  
+  // 验证重连间隔
+  if (newConfig.reconnect.retryInterval < 1000) {
+    alert('重连间隔不能少于 1000 毫秒（1秒）！');
     return;
   }
   

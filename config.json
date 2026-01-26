@@ -18,5 +18,10 @@
     "showTime": true,
     "showNickname": true,
     "showLevel": true
+  },
+  "reconnect": {
+    "enabled": true,
+    "maxRetries": -1,
+    "retryInterval": 3000
   }
 }

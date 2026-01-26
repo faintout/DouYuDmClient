@@ -5,6 +5,8 @@ let config = {};
 
 let ws = null;
 let reconnectTimer = null;
+let currentWsUrl = null; // 当前连接的URL
+let retryCount = 0; // 当前重试次数
 const maxMessages = 100; // 最多保留100条消息
 
 // 加载配置
@@ -69,16 +71,24 @@ function applyConfig() {
   // 检查 WebSocket 连接地址或房间号是否改变
   const newUrl = `${config.socketUrl}${config.roomId}`;
   
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    // 如果当前连接的 URL 和新配置的 URL 不同，重新连接
-    if (ws.url !== newUrl) {
-      console.log('检测到 Socket URL 或房间号变化，重新连接...');
-      console.log('旧 URL:', ws.url);
-      console.log('新 URL:', newUrl);
-      connectWebSocket();
-    }
-  } else if (!ws || ws.readyState === WebSocket.CLOSED) {
+  // 如果 URL 或房间号改变，或者没有连接，则重新连接
+  if (currentWsUrl !== newUrl || !ws || ws.readyState === WebSocket.CLOSED) {
+    console.log('=== 连接状态检查 ===');
+    console.log('当前 URL:', currentWsUrl);
+    console.log('新 URL:', newUrl);
+    console.log('WebSocket 状态:', ws ? ws.readyState : 'null');
+    console.log('URL 是否改变:', currentWsUrl !== newUrl);
+    
+    // 清除重连定时器
+    clearReconnectTimer();
+    
+    // 重置重试计数
+    retryCount = 0;
+    
+    // 重新连接（connectWebSocket 内部会关闭旧连接）
     connectWebSocket();
+  } else {
+    console.log('WebSocket 已连接，URL 未改变，跳过重连');
   }
 }
 
@@ -112,22 +122,47 @@ function connectWebSocket() {
     return;
   }
   
+  // 关闭已有连接
   if (ws) {
+    console.log('关闭旧的 WebSocket 连接');
+    ws.onopen = null;
+    ws.onmessage = null;
+    ws.onerror = null;
+    ws.onclose = null; // 移除所有事件处理
     ws.close();
+    ws = null;
   }
+  
+  // 清空之前的弹幕（在关闭连接后清空）
+  clearMessages();
 
   const url = `${config.socketUrl}${config.roomId}`;
+  currentWsUrl = url;
   console.log('正在连接 WebSocket:', url);
+  console.log('房间号:', config.roomId);
+  
+  // 显示"连接中"状态，包含房间号
+  addSystemMessage('connecting', `正在连接到房间 ${config.roomId}...`);
+  
   ws = new WebSocket(url);
 
   ws.onopen = () => {
-    console.log('WebSocket 连接成功');
+    console.log('WebSocket 连接成功，房间号:', config.roomId);
+    
+    // 重置重试次数
+    retryCount = 0;
+    
+    // 清除重连定时器
     clearReconnectTimer();
+    
+    // 显示"已连接"状态，包含房间号
+    addSystemMessage('connected', `已连接到房间 ${config.roomId}`);
   };
 
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
+      console.log('收到消息:', data.type, '房间号:', config.roomId);
       handleMessage(data);
     } catch (error) {
       console.error('解析消息失败:', error);
@@ -135,22 +170,50 @@ function connectWebSocket() {
   };
 
   ws.onerror = (error) => {
-    console.error('WebSocket 错误:', error);
+    console.error('WebSocket 错误:', error, '房间号:', config.roomId);
+    addSystemMessage('error', '连接发生错误');
   };
 
   ws.onclose = () => {
-    console.log('WebSocket 连接关闭');
+    console.log('WebSocket 连接关闭，房间号:', config.roomId);
+    addSystemMessage('disconnected', '连接已断开');
     scheduleReconnect();
   };
 }
 
 // 处理重连
 function scheduleReconnect() {
+  // 检查是否启用重连
+  if (!config.reconnect || !config.reconnect.enabled) {
+    console.log('自动重连已禁用');
+    return;
+  }
+  
+  const maxRetries = config.reconnect.maxRetries || -1;
+  const retryInterval = config.reconnect.retryInterval || 3000;
+  
+  // 检查是否达到最大重试次数（-1表示无限重试）
+  if (maxRetries !== -1 && retryCount >= maxRetries) {
+    console.log(`已达到最大重试次数 ${maxRetries}，停止重连`);
+    addSystemMessage('error', `重连失败，已达到最大重试次数 ${maxRetries}`);
+    return;
+  }
+  
+  retryCount++;
+  
   clearReconnectTimer();
+  
+  const retryText = maxRetries === -1 
+    ? `第 ${retryCount} 次重连` 
+    : `第 ${retryCount}/${maxRetries} 次重连`;
+  
+  console.log(`${retryInterval}ms 后尝试${retryText}...`);
+  addSystemMessage('reconnecting', `${retryInterval / 1000}秒后尝试${retryText}...`);
+  
   reconnectTimer = setTimeout(() => {
-    console.log('尝试重连...');
+    console.log(`正在进行${retryText}...`);
     connectWebSocket();
-  }, 3000);
+  }, retryInterval);
 }
 
 function clearReconnectTimer() {
@@ -158,6 +221,68 @@ function clearReconnectTimer() {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
+}
+
+// 清空消息列表
+function clearMessages() {
+  const messageList = document.getElementById('messageList');
+  messageList.innerHTML = '';
+  console.log('已清空弹幕消息');
+}
+
+// 添加系统消息
+function addSystemMessage(type, message) {
+  const messageList = document.getElementById('messageList');
+  const messageItem = document.createElement('div');
+  messageItem.className = `message-item system-message ${type}`;
+  
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+  
+  let icon = '🔗';
+  let colorClass = '';
+  
+  switch (type) {
+    case 'connecting':
+      icon = '🔄';
+      colorClass = 'status-connecting';
+      break;
+    case 'connected':
+      icon = '✅';
+      colorClass = 'status-connected';
+      break;
+    case 'disconnected':
+      icon = '❌';
+      colorClass = 'status-disconnected';
+      break;
+    case 'reconnecting':
+      icon = '🔄';
+      colorClass = 'status-reconnecting';
+      break;
+    case 'error':
+      icon = '⚠️';
+      colorClass = 'status-error';
+      break;
+  }
+  
+  messageItem.innerHTML = `
+    <div class="message-header ${colorClass}">
+      <span class="message-time">${timeStr}</span>
+      <span>${icon} ${message}</span>
+    </div>
+  `;
+  
+  messageList.appendChild(messageItem);
+  
+  // 限制消息数量
+  const messages = messageList.children;
+  if (messages.length > maxMessages) {
+    messageList.removeChild(messages[0]);
+  }
+  
+  // 滚动到底部
+  const container = document.getElementById('container');
+  container.scrollTop = container.scrollHeight;
 }
 
 // 处理消息

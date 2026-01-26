@@ -271,6 +271,26 @@
       </div>
     </div>
 
+    <div class="config-section">
+      <label class="config-label">断线重连</label>
+      <div class="checkbox-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="reconnectEnabled" checked>
+          <label for="reconnectEnabled">启用自动重连</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">重连次数 (-1 表示无限重试)</label>
+      <input type="number" class="config-input" id="reconnectMaxRetries" value="-1" placeholder="重连次数">
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">重连间隔 (毫秒)</label>
+      <input type="number" class="config-input" id="reconnectInterval" value="3000" min="1000" step="1000" placeholder="重连间隔">
+    </div>
+
     <div class="button-group">
       <button class="btn btn-primary" id="saveBtn">确定</button>
       <button class="btn btn-secondary" id="cancelBtn">取消</button>

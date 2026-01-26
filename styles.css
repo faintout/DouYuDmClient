@@ -122,3 +122,46 @@ body {
   margin: 8px 0;
   line-height: 1.6;
 }
+
+/* 系统消息样式 */
+.system-message {
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid;
+}
+
+.system-message .message-header {
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+/* 连接中状态 */
+.status-connecting {
+  color: #4FC3F7;
+  border-color: #4FC3F7;
+}
+
+/* 已连接状态 */
+.status-connected {
+  color: #66BB6A;
+  border-color: #66BB6A;
+}
+
+/* 断开连接状态 */
+.status-disconnected {
+  color: #EF5350;
+  border-color: #EF5350;
+}
+
+/* 重连中状态 */
+.status-reconnecting {
+  color: #FFA726;
+  border-color: #FFA726;
+}
+
+/* 错误状态 */
+.status-error {
+  color: #FF6B6B;
+  border-color: #FF6B6B;
+}
