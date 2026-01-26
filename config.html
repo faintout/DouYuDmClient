@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>配置</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Microsoft YaHei', 'Segoe UI', Arial, sans-serif;
+      background: #1e1e1e;
+      color: #ffffff;
+      padding: 0;
+      margin: 0;
+    }
+
+    .title-bar {
+      height: 40px;
+      background: #252525;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 15px;
+      -webkit-app-region: drag;
+      border-bottom: 1px solid #404040;
+    }
+
+    .title-bar-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #ffffff;
+    }
+
+    .title-bar-close {
+      width: 46px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-app-region: no-drag;
+      transition: background 0.2s;
+    }
+
+    .title-bar-close:hover {
+      background: #e81123;
+    }
+
+    .title-bar-close::before {
+      content: '✕';
+      font-size: 16px;
+      color: #ffffff;
+    }
+
+    .config-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .config-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .config-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #cccccc;
+    }
+
+    .config-input {
+      padding: 8px 12px;
+      background: #2d2d2d;
+      border: 1px solid #404040;
+      border-radius: 4px;
+      color: #ffffff;
+      font-size: 14px;
+    }
+
+    .config-input:focus {
+      outline: none;
+      border-color: #0078d4;
+    }
+
+    .config-range {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .config-range input[type="range"] {
+      flex: 1;
+    }
+
+    .config-range span {
+      min-width: 50px;
+      text-align: right;
+      font-size: 14px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px;
+      background: #2d2d2d;
+      border-radius: 4px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .checkbox-item label {
+      font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-primary {
+      background: #0078d4;
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: #106ebe;
+    }
+
+    .btn-secondary {
+      background: #404040;
+      color: #ffffff;
+    }
+
+    .btn-secondary:hover {
+      background: #505050;
+    }
+
+    .color-picker-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .color-picker {
+      width: 50px;
+      height: 35px;
+      border: 1px solid #404040;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    input[type="color"] {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="title-bar">
+    <div class="title-bar-title">配置</div>
+    <div class="title-bar-close" id="closeBtn"></div>
+  </div>
+  <div class="config-container">
+    <div class="config-section">
+      <label class="config-label">背景透明度 (0-100)</label>
+      <div class="config-range">
+        <input type="range" id="backgroundOpacity" min="0" max="100" value="80">
+        <span id="opacityValue">80%</span>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">背景颜色</label>
+      <div class="color-picker-group">
+        <input type="color" id="backgroundColor" value="#000000">
+        <div class="color-picker" id="colorPickerDisplay" style="background: #000000;"></div>
+        <input type="text" class="config-input" id="backgroundColorText" value="#000000" placeholder="#000000">
+      </div>
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">文字颜色</label>
+      <div class="color-picker-group">
+        <input type="color" id="textColor" value="#ffffff">
+        <div class="color-picker" id="textColorDisplay" style="background: #ffffff;"></div>
+        <input type="text" class="config-input" id="textColorText" value="#ffffff" placeholder="#ffffff">
+      </div>
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">Socket连接完整地址</label>
+      <input type="text" class="config-input" id="socketUrl" placeholder="Socket连接完整地址  例如：ws://139.9.106.182:8080/?roomId=">
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">房间号</label>
+      <input type="text" class="config-input" id="roomId" placeholder="请输入房间号">
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">显示的消息类型</label>
+      <div class="checkbox-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="typeConnected" checked>
+          <label for="typeConnected">连接消息</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="typeUenter" checked>
+          <label for="typeUenter">用户进入</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="typeChatmsg" checked>
+          <label for="typeChatmsg">弹幕消息</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="typeGift" checked>
+          <label for="typeGift">礼物消息</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">显示选项</label>
+      <div class="checkbox-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="showTime" checked>
+          <label for="showTime">显示时间</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="showNickname" checked>
+          <label for="showNickname">显示用户名</label>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="showLevel" checked>
+          <label for="showLevel">显示等级</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button class="btn btn-primary" id="saveBtn">确定</button>
+      <button class="btn btn-secondary" id="cancelBtn">取消</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+</body>
+</html>

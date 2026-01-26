@@ -1,0 +1,124 @@
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Microsoft YaHei', 'Segoe UI', Arial, sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+.container {
+  width: 100%;
+  height: 100vh;
+  padding: 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.message-item {
+  padding: 4px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  animation: fadeIn 0.3s ease-in;
+  pointer-events: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.message-time {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.message-nickname {
+  font-weight: 600;
+}
+
+.message-level {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.message-content {
+  margin-top: 4px;
+}
+
+.message-gift-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.gift-name {
+  color: #FFD700;
+  font-weight: 600;
+}
+
+.gift-count {
+  color: #FF6B6B;
+  font-weight: 600;
+}
+
+/* 配置提示样式 */
+.config-tip {
+  padding: 20px;
+  text-align: center;
+  pointer-events: auto;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.config-tip h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #ff6b6b;
+}
+
+.config-tip p {
+  font-size: 14px;
+  margin: 8px 0;
+  line-height: 1.6;
+}

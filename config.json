@@ -1,0 +1,22 @@
+{
+  "backgroundOpacity": 80,
+  "backgroundColor": "#000000",
+  "textColor": "#ffffff",
+  "socketUrl": "ws://139.9.106.182:8080/?roomId=",
+  "roomId": "12345",
+  "windowSize": {
+    "width": 600,
+    "height": 400
+  },
+  "messageTypes": {
+    "connected": true,
+    "uenter": true,
+    "chatmsg": true,
+    "gift": true
+  },
+  "displayOptions": {
+    "showTime": true,
+    "showNickname": true,
+    "showLevel": true
+  }
+}
