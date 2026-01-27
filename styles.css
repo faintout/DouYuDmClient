@@ -165,3 +165,17 @@ body {
   color: #FF6B6B;
   border-color: #FF6B6B;
 }
+
+/* 错误类型消息 */
+.message-item.error {
+  background: rgba(255, 107, 107, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 4px solid #FF6B6B;
+}
+
+.message-item.error .message-content {
+  color: #ff6b6b;
+  font-weight: 500;
+  word-break: break-all;
+}

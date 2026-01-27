@@ -160,13 +160,18 @@ function connectWebSocket() {
   };
 
   ws.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      console.log('收到消息:', data.type, '房间号:', config.roomId);
-      handleMessage(data);
-    } catch (error) {
-      console.error('解析消息失败:', error);
-    }
+    // 使用 setTimeout 0 将消息处理放到下一个事件循环，避免阻塞
+    setTimeout(() => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('收到消息:', data.type, '房间号:', config.roomId);
+        handleMessage(data);
+      } catch (error) {
+        console.error('解析消息失败:', error);
+        // 显示解析错误
+        addSystemMessage('error', `消息解析失败: ${error.message}`);
+      }
+    }, 0);
   };
 
   ws.onerror = (error) => {
@@ -290,11 +295,17 @@ function handleMessage(data) {
   const { type } = data;
   
   // 检查是否应该显示此类型消息
-  if (!config.messageTypes[type]) {
+  // 如果配置中没有该类型，或者该类型设置为 false，则不显示
+  // 但 error 类型始终显示
+  if (type !== 'error' && config.messageTypes && config.messageTypes[type] === false) {
+    console.log('消息类型已被过滤:', type);
     return;
   }
 
-  addMessage(data);
+  // 异步添加消息，避免阻塞
+  requestAnimationFrame(() => {
+    addMessage(data);
+  });
 }
 
 // 添加消息到列表
@@ -370,8 +381,29 @@ function createMessageElement(data) {
       `;
       break;
       
+    case 'error':
+      div.innerHTML = `
+        <div class="message-header status-error">
+          ${showTime ? `<span class="message-time">${data.time || new Date().toLocaleTimeString('zh-CN', {hour12: false})}</span>` : ''}
+          <span>⚠️ 错误</span>
+        </div>
+        <div class="message-content" style="color: #ff6b6b;">
+          ${escapeHtml(data.message || JSON.stringify(data))}
+        </div>
+      `;
+      break;
+      
     default:
-      div.innerHTML = `<div>${JSON.stringify(data)}</div>`;
+      // 显示所有未知类型的消息
+      div.innerHTML = `
+        <div class="message-header">
+          ${showTime ? `<span class="message-time">${new Date().toLocaleTimeString('zh-CN', {hour12: false})}</span>` : ''}
+          <span>📨 ${data.type || '未知消息'}</span>
+        </div>
+        <div class="message-content">
+          ${data.message ? escapeHtml(data.message) : JSON.stringify(data)}
+        </div>
+      `;
   }
   
   return div;

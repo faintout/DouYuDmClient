@@ -12,7 +12,8 @@
     "connected": true,
     "uenter": true,
     "chatmsg": true,
-    "gift": true
+    "gift": true,
+    "error": true
   },
   "displayOptions": {
     "showTime": true,
