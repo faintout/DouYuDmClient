@@ -44,7 +44,7 @@
       "!node_modules/**/*"
     ],
     "asar": true,
-    "compression": "maximum",
+    "compression": "normal",
     "win": {
       "target": [
         {

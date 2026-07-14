@@ -24,6 +24,7 @@ jobs:
             artifact_path: dist
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
 
     steps:
       - name: Checkout code
@@ -40,16 +41,26 @@ jobs:
 
       - name: Build for ${{ matrix.target }}
         run: npm run build:${{ matrix.target }}
+        env:
+          DEBUG: 'electron-builder'
+
+      - name: List build artifacts
+        shell: bash
+        run: |
+          echo "=== Build artifacts ==="
+          find dist -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.deb" \) -ls
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}-artifacts
-          path: ${{ matrix.artifact_path }}/*
+          path: dist/
+          if-no-files-found: warn
 
   release:
     needs: build
     runs-on: ubuntu-latest
+    if: success()
 
     steps:
       - name: Download all artifacts
@@ -57,10 +68,17 @@ jobs:
         with:
           path: ./artifacts
 
+      - name: List downloaded artifacts
+        run: |
+          echo "=== Downloaded artifacts ==="
+          find ./artifacts -type f -ls
+
       - name: Flatten artifacts directory
         run: |
           mkdir -p ./release-files
           find ./artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.deb" \) -exec mv {} ./release-files/ \;
+          echo "=== Release files ==="
+          ls -lh ./release-files/
 
       - name: Create Release
         uses: softprops/action-gh-release@v1

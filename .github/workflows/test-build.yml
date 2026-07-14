@@ -19,6 +19,7 @@ jobs:
             target: mac
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
 
     steps:
       - name: Checkout code
@@ -35,11 +36,18 @@ jobs:
 
       - name: Build for ${{ matrix.target }}
         run: npm run build:${{ matrix.target }}
+        env:
+          DEBUG: 'electron-builder'
 
       - name: Check build output
+        shell: bash
         run: |
-          if [ -z "$(find dist -type f -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.zip' -o -name '*.deb' 2>/dev/null)" ]; then
-            echo "Build failed: No output files found"
+          echo "=== Build artifacts in dist/ ==="
+          ls -lh dist/ || echo "dist/ not found"
+
+          artifact_count=$(find dist -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.deb" \) 2>/dev/null | wc -l)
+          if [ "$artifact_count" -eq 0 ]; then
+            echo "❌ Build failed: No output files found"
             exit 1
           fi
-        shell: bash
+          echo "✅ Build succeeded: Found $artifact_count artifact(s)"
