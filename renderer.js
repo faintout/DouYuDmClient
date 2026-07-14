@@ -1,5 +1,9 @@
 const { ipcRenderer } = require('electron');
 
+function logToMain(level, ...args) {
+  ipcRenderer.send('renderer-log', level, ...args);
+}
+
 // 配置对象，从主进程获取
 let config = {};
 
@@ -14,6 +18,10 @@ async function loadConfig() {
   // 从主进程获取配置
   config = await ipcRenderer.invoke('get-config');
   console.log('已加载配置:', config);
+  logToMain('info', '已加载配置', {
+    socketUrl: config.socketUrl,
+    roomId: config.roomId
+  });
   applyConfig();
 }
 
@@ -89,7 +97,27 @@ function applyConfig() {
     connectWebSocket();
   } else {
     console.log('WebSocket 已连接，URL 未改变，跳过重连');
+    showCurrentConnectionStatus();
   }
+}
+
+function showCurrentConnectionStatus() {
+  if (!ws) {
+    addSystemMessage('disconnected', '当前没有 WebSocket 连接');
+    return;
+  }
+
+  if (ws.readyState === WebSocket.CONNECTING) {
+    addSystemMessage('connecting', `正在连接到房间 ${config.roomId}...`);
+    return;
+  }
+
+  if (ws.readyState === WebSocket.OPEN) {
+    addSystemMessage('connected', `已连接到房间 ${config.roomId}`);
+    return;
+  }
+
+  addSystemMessage('disconnected', '连接已断开');
 }
 
 // 十六进制转RGB
@@ -140,6 +168,7 @@ function connectWebSocket() {
   currentWsUrl = url;
   console.log('正在连接 WebSocket:', url);
   console.log('房间号:', config.roomId);
+  logToMain('info', '正在连接 WebSocket', { url, roomId: config.roomId });
   
   // 显示"连接中"状态，包含房间号
   addSystemMessage('connecting', `正在连接到房间 ${config.roomId}...`);
@@ -148,6 +177,7 @@ function connectWebSocket() {
 
   ws.onopen = () => {
     console.log('WebSocket 连接成功，房间号:', config.roomId);
+    logToMain('info', 'WebSocket 连接成功', { roomId: config.roomId });
     
     // 重置重试次数
     retryCount = 0;
@@ -176,11 +206,13 @@ function connectWebSocket() {
 
   ws.onerror = (error) => {
     console.error('WebSocket 错误:', error, '房间号:', config.roomId);
+    logToMain('error', 'WebSocket 错误', { roomId: config.roomId, url: currentWsUrl });
     addSystemMessage('error', '连接发生错误');
   };
 
   ws.onclose = () => {
     console.log('WebSocket 连接关闭，房间号:', config.roomId);
+    logToMain('info', 'WebSocket 连接关闭', { roomId: config.roomId, url: currentWsUrl });
     addSystemMessage('disconnected', '连接已断开');
     scheduleReconnect();
   };
@@ -466,6 +498,10 @@ document.addEventListener('mouseup', async () => {
 
 // 监听配置更新
 ipcRenderer.on('config-updated', (event, newConfig) => {
+  logToMain('info', '收到 config-updated', {
+    socketUrl: newConfig.socketUrl,
+    roomId: newConfig.roomId
+  });
   config = newConfig;
   applyConfig();
 });

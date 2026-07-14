@@ -11,9 +11,35 @@ let lockedSize = null; // 锁定的窗口尺寸
 // 配置文件路径（用户数据目录，打包后可写）
 const userDataPath = app.getPath('userData');
 const configPath = path.join(userDataPath, 'config.json');
+const logPath = path.join(userDataPath, 'app.log');
 
+function writeLog(level, ...args) {
+  const message = args.map((arg) => {
+    if (arg instanceof Error) {
+      return arg.stack || arg.message;
+    }
+    if (typeof arg === 'string') {
+      return arg;
+    }
+    try {
+      return JSON.stringify(arg);
+    } catch {
+      return String(arg);
+    }
+  }).join(' ');
+  const line = `[${new Date().toISOString()}] [${level}] ${message}`;
 
+  console[level === 'error' ? 'error' : 'log'](message);
 
+  try {
+    if (!fs.existsSync(userDataPath)) {
+      fs.mkdirSync(userDataPath, { recursive: true });
+    }
+    fs.appendFileSync(logPath, line + '\n', 'utf-8');
+  } catch (error) {
+    console.error('写入日志失败', error);
+  }
+}
 
 // 检查配置文件是否存在，不存在则创建默认配置
 function initConfig() {
@@ -24,15 +50,15 @@ function initConfig() {
     }
 
     if (!fs.existsSync(configPath)) {
-      console.log('配置文件不存在，创建默认配置:', configPath);
+      writeLog('info', '配置文件不存在，创建默认配置:', configPath);
       // 创建默认配置文件
       fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2), 'utf-8');
-      console.log('默认配置文件已创建');
+      writeLog('info', '默认配置文件已创建');
     } else {
-      console.log('配置文件存在:', configPath);
+      writeLog('info', '配置文件存在:', configPath);
     }
   } catch (error) {
-    console.error('创建失败', error);
+    writeLog('error', '创建配置失败', error);
   }
 }
 
@@ -42,16 +68,16 @@ function loadConfig() {
     if (fs.existsSync(configPath)) {
       const content = fs.readFileSync(configPath, 'utf-8');
       const config = JSON.parse(content);
-      console.log('配置已加载');
+      writeLog('info', '配置已加载');
       return config;
     } else {
-      console.error('配置文件不存在:', configPath);
+      writeLog('error', '配置文件不存在:', configPath);
       return {
         error: '配置文件不存在，请创建 config.json'
       };
     }
   } catch (error) {
-    console.error('加载配置失败:', error);
+    writeLog('error', '加载配置失败:', error);
     return {
       error: '加载配置失败: ' + error.message
     };
@@ -62,11 +88,11 @@ function loadConfig() {
 function saveConfig(config) {
   try {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
-    console.log('配置已保存:', configPath);
-    return true;
+    writeLog('info', '配置已保存:', configPath);
+    return { success: true };
   } catch (error) {
-    console.error('保存配置失败:', error);
-    return false;
+    writeLog('error', '保存配置失败:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -116,7 +142,7 @@ function createWindow() {
       const currentConfig = loadConfig();
       currentConfig.windowSize = { width, height };
       saveConfig(currentConfig);
-      console.log('窗口大小已保存:', { width, height });
+      writeLog('info', '窗口大小已保存:', { width, height });
     }, 500); // 500ms 后保存
   });
 
@@ -176,15 +202,30 @@ ipcMain.handle('get-config', () => {
 });
 
 ipcMain.handle('update-config', (event, newConfig) => {
+  writeLog('info', '收到配置更新请求', {
+    socketUrl: newConfig.socketUrl,
+    roomId: newConfig.roomId
+  });
+
   // 保存新配置到文件
-  const success = saveConfig(newConfig);
+  const result = saveConfig(newConfig);
   
   // 通知主窗口配置已更新
-  if (success && mainWindow) {
+  if (result.success && mainWindow) {
+    writeLog('info', '发送 config-updated 到主窗口');
     mainWindow.webContents.send('config-updated', newConfig);
   }
   
-  return newConfig;
+  return {
+    ...result,
+    config: newConfig,
+    configPath,
+    logPath
+  };
+});
+
+ipcMain.on('renderer-log', (event, level, ...args) => {
+  writeLog(level === 'error' ? 'error' : 'info', '[renderer]', ...args);
 });
 
 ipcMain.on('open-config', () => {
@@ -248,13 +289,13 @@ ipcMain.handle('lock-window-size', (event, lock) => {
     // 保存当前尺寸
     const [width, height] = mainWindow.getSize();
     lockedSize = { width, height };
-    console.log('锁定窗口大小:', lockedSize);
+    writeLog('info', '锁定窗口大小:', lockedSize);
     
     // 禁用调整大小
     mainWindow.setResizable(false);
     
   } else {
-    console.log('解锁窗口大小');
+    writeLog('info', '解锁窗口大小');
     
     lockedSize = null;
     

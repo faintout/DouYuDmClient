@@ -149,7 +149,12 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     return;
   }
   
-  await ipcRenderer.invoke('update-config', newConfig);
+  const result = await ipcRenderer.invoke('update-config', newConfig);
+  if (!result || !result.success) {
+    alert(`配置保存失败：${result?.error || '未知错误'}`);
+    return;
+  }
+
   ipcRenderer.send('close-config');
 });
 
