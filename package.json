@@ -45,6 +45,9 @@
     ],
     "asar": true,
     "compression": "normal",
+    "publish": {
+      "provider": "github"
+    },
     "win": {
       "target": [
         {
