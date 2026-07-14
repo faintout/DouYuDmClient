@@ -24,5 +24,12 @@
     "enabled": true,
     "maxRetries": -1,
     "retryInterval": 3000
+  },
+  "deduplication": {
+    "enabled": false,
+    "timeWindow": 5
+  },
+  "messageVolume": {
+    "percentage": 100
   }
 }

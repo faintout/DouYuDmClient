@@ -168,6 +168,16 @@
       background: #505050;
     }
 
+    .volume-quick-buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .volume-quick-buttons .btn {
+      padding: 8px !important;
+    }
+
     .color-picker-group {
       display: flex;
       align-items: center;
@@ -289,6 +299,35 @@
     <div class="config-section">
       <label class="config-label">重连间隔 (毫秒)</label>
       <input type="number" class="config-input" id="reconnectInterval" value="3000" min="1000" step="1000" placeholder="重连间隔">
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">重复弹幕过滤</label>
+      <div class="checkbox-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="deduplicationEnabled">
+          <label for="deduplicationEnabled">启用重复弹幕过滤</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">时间窗口 (秒) - n秒内相同弹幕只显示一次</label>
+      <input type="number" class="config-input" id="deduplicationTimeWindow" value="5" min="1" step="1" placeholder="时间窗口">
+    </div>
+
+    <div class="config-section">
+      <label class="config-label">弹幕量（仅控制弹幕消息，不影响礼物和用户进入）</label>
+      <div class="volume-quick-buttons">
+        <button class="btn btn-secondary" id="volumeQuick20" style="flex: 1;">少量 (20%)</button>
+        <button class="btn btn-secondary" id="volumeQuick50" style="flex: 1;">中量 (50%)</button>
+        <button class="btn btn-secondary" id="volumeQuick100" style="flex: 1;">全量 (100%)</button>
+      </div>
+      <div class="config-range">
+        <input type="range" id="volumeSlider" min="0" max="100" value="100">
+        <input type="number" class="config-input" id="volumeValue" min="0" max="100" value="100" style="width: 70px; text-align: center;">
+        <span id="volumePercent">100%</span>
+      </div>
     </div>
 
     <div class="button-group">

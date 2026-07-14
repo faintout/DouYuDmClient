@@ -13,6 +13,9 @@ let currentWsUrl = null; // 当前连接的URL
 let retryCount = 0; // 当前重试次数
 const maxMessages = 100; // 最多保留100条消息
 
+// 重复弹幕过滤相关
+const recentMessages = new Map(); // 记录近期弹幕：消息内容 -> 最后显示时间
+
 // 加载配置
 async function loadConfig() {
   // 从主进程获取配置
@@ -265,6 +268,7 @@ function clearMessages() {
   const messageList = document.getElementById('messageList');
   messageList.innerHTML = '';
   console.log('已清空弹幕消息');
+  recentMessages.clear();
 }
 
 // 添加系统消息
@@ -325,12 +329,23 @@ function addSystemMessage(type, message) {
 // 处理消息
 function handleMessage(data) {
   const { type } = data;
-  
+
   // 检查是否应该显示此类型消息
   // 如果配置中没有该类型，或者该类型设置为 false，则不显示
   // 但 error 类型始终显示
   if (type !== 'error' && config.messageTypes && config.messageTypes[type] === false) {
     console.log('消息类型已被过滤:', type);
+    return;
+  }
+
+  // 检查弹幕量级别过滤
+  if (!shouldShowByVolume(type)) {
+    console.log('消息被弹幕量过滤:', type);
+    return;
+  }
+
+  // 检查重复弹幕
+  if (isDuplicateMessage(data)) {
     return;
   }
 
@@ -356,6 +371,58 @@ function addMessage(data) {
   // 滚动到底部
   const container = document.getElementById('container');
   container.scrollTop = container.scrollHeight;
+}
+
+// 根据弹幕量百分比判断是否显示消息类型
+function shouldShowByVolume(type) {
+  const volumeConfig = config.messageVolume;
+  if (!volumeConfig) return true;
+
+  // 弹幕量控制只针对 chatmsg（聊天消息），不影响 gift 和 uenter
+  if (type !== 'chatmsg') {
+    return true;
+  }
+
+  const percentage = volumeConfig.percentage || 100;
+  // 根据百分比随机决定是否显示
+  return Math.random() * 100 < percentage;
+}
+
+// 检查是否为重复消息
+function isDuplicateMessage(data) {
+  if (data.type !== 'chatmsg') {
+    return false;
+  }
+
+  const dedupeConfig = config.deduplication;
+  if (!dedupeConfig || !dedupeConfig.enabled) {
+    return false;
+  }
+
+  const messageKey = data.content;
+  const now = Date.now();
+  const timeWindow = (dedupeConfig.timeWindow || 5) * 1000;
+
+  // 检查消息是否在时间窗口内
+  if (recentMessages.has(messageKey)) {
+    const lastTime = recentMessages.get(messageKey);
+    if (now - lastTime < timeWindow) {
+      console.log('重复消息已过滤:', messageKey);
+      return true;
+    }
+  }
+
+  // 记录消息
+  recentMessages.set(messageKey, now);
+
+  // 清理过期的消息记录
+  for (const [key, timestamp] of recentMessages.entries()) {
+    if (now - timestamp >= timeWindow) {
+      recentMessages.delete(key);
+    }
+  }
+
+  return false;
 }
 
 // 创建消息元素

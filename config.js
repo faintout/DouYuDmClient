@@ -43,12 +43,71 @@ async function loadConfig() {
     document.getElementById('reconnectMaxRetries').value = -1;
     document.getElementById('reconnectInterval').value = 3000;
   }
+
+  // 重复弹幕过滤配置
+  if (config.deduplication) {
+    document.getElementById('deduplicationEnabled').checked = config.deduplication.enabled !== false;
+    document.getElementById('deduplicationTimeWindow').value = config.deduplication.timeWindow || 5;
+  } else {
+    document.getElementById('deduplicationEnabled').checked = false;
+    document.getElementById('deduplicationTimeWindow').value = 5;
+  }
+
+  // 弹幕量配置
+  if (config.messageVolume) {
+    document.getElementById('volumeSlider').value = config.messageVolume.percentage || 100;
+    document.getElementById('volumeValue').value = config.messageVolume.percentage || 100;
+    updateVolumeDisplay();
+  } else {
+    document.getElementById('volumeSlider').value = 100;
+    document.getElementById('volumeValue').value = 100;
+    updateVolumeDisplay();
+  }
 }
 
 // 背景透明度滑块
 document.getElementById('backgroundOpacity').addEventListener('input', (e) => {
   const value = e.target.value;
   document.getElementById('opacityValue').textContent = `${value}%`;
+});
+
+// 弹幕量滑块和输入框同步
+function updateVolumeDisplay() {
+  const value = Math.max(0, Math.min(100, parseInt(document.getElementById('volumeSlider').value)));
+  document.getElementById('volumeSlider').value = value;
+  document.getElementById('volumeValue').value = value;
+  document.getElementById('volumePercent').textContent = `${value}%`;
+}
+
+document.getElementById('volumeSlider').addEventListener('input', (e) => {
+  document.getElementById('volumeValue').value = e.target.value;
+  updateVolumeDisplay();
+});
+
+document.getElementById('volumeValue').addEventListener('input', (e) => {
+  const value = e.target.value;
+  if (value === '') return;
+  const num = parseInt(value);
+  if (!isNaN(num)) {
+    document.getElementById('volumeSlider').value = Math.max(0, Math.min(100, num));
+    updateVolumeDisplay();
+  }
+});
+
+// 快捷按钮
+document.getElementById('volumeQuick20').addEventListener('click', () => {
+  document.getElementById('volumeSlider').value = 20;
+  updateVolumeDisplay();
+});
+
+document.getElementById('volumeQuick50').addEventListener('click', () => {
+  document.getElementById('volumeSlider').value = 50;
+  updateVolumeDisplay();
+});
+
+document.getElementById('volumeQuick100').addEventListener('click', () => {
+  document.getElementById('volumeSlider').value = 100;
+  updateVolumeDisplay();
 });
 
 // 背景颜色选择器
@@ -117,6 +176,13 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
       enabled: document.getElementById('reconnectEnabled').checked,
       maxRetries: parseInt(document.getElementById('reconnectMaxRetries').value),
       retryInterval: parseInt(document.getElementById('reconnectInterval').value)
+    },
+    deduplication: {
+      enabled: document.getElementById('deduplicationEnabled').checked,
+      timeWindow: parseInt(document.getElementById('deduplicationTimeWindow').value)
+    },
+    messageVolume: {
+      percentage: parseInt(document.getElementById('volumeValue').value)
     }
   };
   
@@ -148,7 +214,13 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     alert('重连间隔不能少于 1000 毫秒（1秒）！');
     return;
   }
-  
+
+  // 验证时间窗口
+  if (newConfig.deduplication.timeWindow < 1) {
+    alert('时间窗口不能少于 1 秒！');
+    return;
+  }
+
   const result = await ipcRenderer.invoke('update-config', newConfig);
   if (!result || !result.success) {
     alert(`配置保存失败：${result?.error || '未知错误'}`);
