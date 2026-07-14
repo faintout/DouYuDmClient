@@ -1,0 +1,45 @@
+name: Test Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+          - os: windows-latest
+            target: win
+          - os: macos-latest
+            target: mac
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for ${{ matrix.target }}
+        run: npm run build:${{ matrix.target }}
+
+      - name: Check build output
+        run: |
+          if [ -z "$(find dist -type f -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.zip' -o -name '*.deb' 2>/dev/null)" ]; then
+            echo "Build failed: No output files found"
+            exit 1
+          fi
+        shell: bash
