@@ -45,22 +45,15 @@
     ],
     "asar": true,
     "compression": "normal",
-    "publish": {
-      "provider": "github"
-    },
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         },
         {
           "target": "portable",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
       "icon": "icon.ico"

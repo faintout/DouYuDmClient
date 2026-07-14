@@ -12,16 +12,10 @@ jobs:
         include:
           - os: ubuntu-latest
             target: linux
-            artifact_name: '*.AppImage'
-            artifact_path: dist
           - os: windows-latest
             target: win
-            artifact_name: '*.exe'
-            artifact_path: dist
           - os: macos-latest
             target: mac
-            artifact_name: '*.dmg'
-            artifact_path: dist
 
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
@@ -29,23 +23,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Clean old node_modules (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          if (Test-Path "node_modules") {
-            Write-Host "Removing node_modules..."
-            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue node_modules
-            Start-Sleep -Seconds 1
-          }
-          if (Test-Path ".npmrc") {
-            Remove-Item -Force -ErrorAction SilentlyContinue .npmrc
-          }
-          # Clean npm cache
-          & npm cache clean --force 2>$null
-          [GC]::Collect()
-          [GC]::WaitForPendingFinalizers()
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -55,47 +32,28 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps --prefer-offline
-        env:
-          npm_config_loglevel: warn
+        run: npm install --no-audit
+        shell: bash
 
       - name: Build for ${{ matrix.target }}
         run: npm run build:${{ matrix.target }} -- --publish=never
         env:
-          DEBUG: 'electron-builder'
-          ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
-          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
+          ELECTRON_CACHE: ${{ runner.temp }}/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder
+          CI: true
 
       - name: List build artifacts
         shell: bash
         run: |
           echo "=== Build artifacts ==="
-          find dist -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.deb" \) -ls
-
-      - name: Cleanup before upload (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          Write-Host "Releasing all file handles..."
-          Stop-Process -Name node -Force -ErrorAction SilentlyContinue
-          [GC]::Collect()
-          [GC]::WaitForPendingFinalizers()
-          Start-Sleep -Seconds 3
-
-          # Clean temp directory
-          $tempDir = $env:TEMP
-          Get-ChildItem $tempDir -Filter "t-*" -Directory -ErrorAction SilentlyContinue |
-            ForEach-Object {
-              try { Remove-Item -Recurse -Force $_.FullName -ErrorAction SilentlyContinue }
-              catch { Write-Host "Could not remove $_" }
-            }
+          find dist -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.deb" \) -exec ls -lh {} \;
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}-artifacts
           path: dist/
-          if-no-files-found: warn
+          retention-days: 7
 
   release:
     needs: build
@@ -108,19 +66,14 @@ jobs:
         with:
           path: ./artifacts
 
-      - name: List downloaded artifacts
-        run: |
-          echo "=== Downloaded artifacts ==="
-          find ./artifacts -type f -ls
-
-      - name: Flatten artifacts directory
+      - name: Organize artifacts
         run: |
           mkdir -p ./release-files
-          find ./artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.deb" \) -exec mv {} ./release-files/ \;
-          echo "=== Release files ==="
+          find ./artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" \) -exec mv {} ./release-files/ \;
+          echo "=== Files to release ==="
           ls -lh ./release-files/
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: ./release-files/*
@@ -128,3 +81,4 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
