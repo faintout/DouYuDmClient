@@ -25,6 +25,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Clean old node_modules (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          if (Test-Path "node_modules") {
+            Write-Host "Removing node_modules..."
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue node_modules
+          }
+          if (Test-Path ".npmrc") {
+            Remove-Item -Force -ErrorAction SilentlyContinue .npmrc
+          }
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -32,7 +44,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
+        env:
+          npm_config_loglevel: warn
 
       - name: Build for ${{ matrix.target }}
         run: npm run build:${{ matrix.target }}
